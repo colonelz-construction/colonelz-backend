@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import { responseData } from "../utils/respounse.js";
 import registerModel from "../models/usersModels/register.model.js";
+import smartSheetsService from "../utils/smartSheets.service.js";
+import { getDailyLineUpSpreadsheetIdByOrgId } from "../utils/orgConfig.service.js";
 
 
 //  Lead Access
@@ -2395,9 +2397,9 @@ export const readDailyLineUpAccess = async (req, res, next) => {
             next();
         }
         // Check if the user has access to read daily lineup
-        else if (!user.access?.dailyLineUp?.includes('read')) {
-            return responseData(res, "", 403, false, "Forbidden: You do not have access to view Daily LineUp");
-        }
+        // else if (!user.access?.dailyLineUp?.includes('read')) {
+        //     return responseData(res, "", 403, false, "Forbidden: You do not have access to view Daily LineUp");
+        // }
         else {
             next();
         }
@@ -2429,16 +2431,31 @@ export const updateDailyLineUpAccess = async (req, res, next) => {
             return responseData(res, "", 403, false, "Unauthorized: User not found");
         }
 
-        if (user.role === 'SUPERADMIN') {
-            next();
+        // Allow SUPERADMIN or users with explicit update access
+        if (user.role === 'SUPERADMIN' || user.access?.dailyLineUp?.includes('update')) {
+            return next();
         }
-        // Check if the user has access to update daily lineup
-        else if (!user.access?.dailyLineUp?.includes('update')) {
-            return responseData(res, "", 403, false, "Forbidden: You do not have access to update Daily LineUp");
+
+        // Column-level fallback: allow users to update only their own column
+        try {
+            const date = req.params?.date || req.body?.date;
+            const hasBatch = Array.isArray(req.body?.updates);
+            const targetColumns = hasBatch ? req.body.updates.map(u => u.column) : [req.body?.column];
+
+            if (date && targetColumns.every(c => Number.isInteger(c))) {
+                const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
+                const sheetData = await smartSheetsService.getSheetData(date, spreadsheetId);
+                const headers = sheetData?.headers || [];
+                const isAuthorized = targetColumns.every(colIdx => headers[colIdx] === user.username);
+                if (isAuthorized) {
+                    return next();
+                }
+            }
+        } catch (_) {
+            // fallthrough to forbidden
         }
-        else {
-            next();
-        }
+
+        return responseData(res, "", 403, false, "Forbidden: You can only update your own column");
 
     } catch (err) {
         return responseData(res, "", 403, false, "Unauthorized: Invalid token");

@@ -5,7 +5,8 @@
 
 class MockGoogleSheetsService {
     constructor() {
-        this.mockSheets = new Map();
+        // Map of spreadsheetId => Map of date => sheet
+        this.mockSpreadsheets = new Map();
         console.log('Using Mock Google Sheets Service - for development only');
     }
 
@@ -19,23 +20,33 @@ class MockGoogleSheetsService {
         return true;
     }
 
-    async getSheetTabs() {
-        const mockTabs = [
-            { title: '2025-01-01', sheetId: 1 },
-            { title: '2025-01-02', sheetId: 2 },
-            { title: '2025-01-03', sheetId: 3 }
-        ];
-        
-        // Add dynamically created sheets
-        for (const [date, sheet] of this.mockSheets) {
-            mockTabs.push({ title: date, sheetId: sheet.sheetId });
+    async getSheetTabs(spreadsheetIdOverride) {
+        const key = spreadsheetIdOverride || 'GLOBAL';
+        if (!this.mockSpreadsheets.has(key)) {
+            this.mockSpreadsheets.set(key, new Map());
         }
-        
-        console.log('Mock: Returning sheet tabs:', mockTabs.map(t => t.title));
+        const sheetsMap = this.mockSpreadsheets.get(key);
+
+        // Start with some default examples for a new spreadsheet
+        if (sheetsMap.size === 0) {
+            const defaults = ['2025-01-01', '2025-01-02', '2025-01-03'];
+            for (const d of defaults) {
+                sheetsMap.set(d, {
+                    title: d,
+                    sheetId: Date.now() + Math.floor(Math.random() * 1000),
+                    teamMembers: ['User1', 'User2'],
+                    timeSlots: ['10:00 AM', '2:15 PM', '6:45 PM'],
+                    data: this.createMockSheetData(['User1', 'User2'])
+                });
+            }
+        }
+
+        const mockTabs = Array.from(sheetsMap.entries()).map(([date, sheet]) => ({ title: date, sheetId: sheet.sheetId }));
+        console.log(`Mock: Returning sheet tabs for ${key}:`, mockTabs.map(t => t.title));
         return mockTabs;
     }
 
-    async createDateSheet(date, teamMembers) {
+    async createDateSheet(date, teamMembers, spreadsheetIdOverride) {
         if (!date) {
             throw new Error('Date is required');
         }
@@ -44,8 +55,14 @@ class MockGoogleSheetsService {
             throw new Error('Team members array is required and must not be empty');
         }
 
+        const key = spreadsheetIdOverride || 'GLOBAL';
+        if (!this.mockSpreadsheets.has(key)) {
+            this.mockSpreadsheets.set(key, new Map());
+        }
+        const sheetsMap = this.mockSpreadsheets.get(key);
+
         // Check if sheet already exists
-        const existingSheets = await this.getSheetTabs();
+        const existingSheets = await this.getSheetTabs(key);
         const sheetExists = existingSheets.some(sheet => sheet.title === date);
         
         if (sheetExists) {
@@ -61,7 +78,7 @@ class MockGoogleSheetsService {
             data: this.createMockSheetData(teamMembers)
         };
 
-        this.mockSheets.set(date, newSheet);
+        sheetsMap.set(date, newSheet);
 
         console.log(`Mock: Created sheet for ${date} with team members:`, teamMembers);
         
@@ -97,27 +114,31 @@ class MockGoogleSheetsService {
         return true;
     }
 
-    async getSheetData(sheetName) {
-        const sheet = this.mockSheets.get(sheetName);
+    async getSheetData(sheetName, spreadsheetIdOverride) {
+        const key = spreadsheetIdOverride || 'GLOBAL';
+        const sheetsMap = this.mockSpreadsheets.get(key) || new Map();
+        const sheet = sheetsMap.get(sheetName);
         
         if (!sheet) {
             // Return default structure
             const defaultData = this.createMockSheetData(['User1', 'User2', 'User3']);
-            console.log(`Mock: Returning default data for ${sheetName}`);
+            console.log(`Mock: Returning default data for ${sheetName} in ${key}`);
             return defaultData;
         }
 
-        console.log(`Mock: Returning data for ${sheetName}`);
+        console.log(`Mock: Returning data for ${sheetName} in ${key}`);
         return sheet.data;
     }
 
-    async updateCell(sheetName, row, column, value) {
-        console.log(`Mock: Updated cell ${sheetName}[${row}][${column}] = "${value}"`);
+    async updateCell(sheetName, row, column, value, spreadsheetIdOverride) {
+        const key = spreadsheetIdOverride || 'GLOBAL';
+        console.log(`Mock: Updated cell ${sheetName}[${row}][${column}] = "${value}" in ${key}`);
         return { success: true, message: 'Mock cell updated successfully' };
     }
 
-    async batchUpdateCells(sheetName, updates) {
-        console.log(`Mock: Batch updated ${updates.length} cells in ${sheetName}`);
+    async batchUpdateCells(sheetName, updates, spreadsheetIdOverride) {
+        const key = spreadsheetIdOverride || 'GLOBAL';
+        console.log(`Mock: Batch updated ${updates.length} cells in ${sheetName} in ${key}`);
         updates.forEach(update => {
             console.log(`  - [${update.row}][${update.column}] = "${update.value}"`);
         });
@@ -134,11 +155,13 @@ class MockGoogleSheetsService {
         return columnHeader === userName;
     }
 
-    async deleteSheet(sheetName) {
-        const existed = this.mockSheets.has(sheetName);
-        this.mockSheets.delete(sheetName);
+    async deleteSheet(sheetName, spreadsheetIdOverride) {
+        const key = spreadsheetIdOverride || 'GLOBAL';
+        const sheetsMap = this.mockSpreadsheets.get(key) || new Map();
+        const existed = sheetsMap.has(sheetName);
+        sheetsMap.delete(sheetName);
         
-        console.log(`Mock: ${existed ? 'Deleted' : 'Attempted to delete'} sheet ${sheetName}`);
+        console.log(`Mock: ${existed ? 'Deleted' : 'Attempted to delete'} sheet ${sheetName} in ${key}`);
         
         if (!existed) {
             throw new Error(`Sheet ${sheetName} not found`);

@@ -1,7 +1,8 @@
 import { responseData } from "../../../utils/respounse.js";
-import googleSheetsService from "../../../utils/googleSheets.service.js";
+import smartSheetsService from "../../../utils/smartSheets.service.js";
 import registerModel from "../../../models/usersModels/register.model.js";
 import jwt from "jsonwebtoken";
+import { getDailyLineUpSpreadsheetIdByOrgId } from "../../../utils/orgConfig.service.js";
 
 /**
  * Helper function to get user from JWT token
@@ -41,7 +42,9 @@ const getUserFromToken = async (req) => {
  */
 export const getDateSheets = async (req, res) => {
     try {
-        const sheets = await googleSheetsService.getSheetTabs();
+        const user = await getUserFromToken(req);
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
+        const sheets = await smartSheetsService.getSheetTabs(spreadsheetId);
         
         // Filter out any non-date sheets (if any)
         const dateSheets = sheets.filter(sheet => {
@@ -50,7 +53,7 @@ export const getDateSheets = async (req, res) => {
             return dateRegex.test(sheet.title);
         });
 
-        return responseData(res, dateSheets, 200, true, "Date sheets retrieved successfully");
+        return responseData(res, "OK", 200, true, "Date sheets retrieved successfully", dateSheets);
     } catch (error) {
         console.error("Error getting date sheets:", error);
         return responseData(res, "", 500, false, "Failed to retrieve date sheets");
@@ -68,9 +71,11 @@ export const getSheetData = async (req, res) => {
             return responseData(res, "", 400, false, "Date parameter is required");
         }
 
-        const sheetData = await googleSheetsService.getSheetData(date);
+        const user = await getUserFromToken(req);
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
+        const sheetData = await smartSheetsService.getSheetData(date, spreadsheetId);
         
-        return responseData(res, sheetData, 200, true, "Sheet data retrieved successfully");
+        return responseData(res, "OK", 200, true, "Sheet data retrieved successfully", sheetData);
     } catch (error) {
         console.error("Error getting sheet data:", error);
         return responseData(res, "", 500, false, "Failed to retrieve sheet data");
@@ -90,9 +95,10 @@ export const updateCell = async (req, res) => {
         }
 
         const user = await getUserFromToken(req);
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
 
         // Get sheet data to check column headers for permission validation
-        const sheetData = await googleSheetsService.getSheetData(date);
+        const sheetData = await smartSheetsService.getSheetData(date, spreadsheetId);
         const headers = sheetData.headers;
         
         if (column >= headers.length) {
@@ -102,15 +108,15 @@ export const updateCell = async (req, res) => {
         const columnHeader = headers[column];
         
         // Check if user has permission to edit this column
-        const hasPermission = googleSheetsService.checkEditPermission(user.role, user.username, columnHeader);
+        const hasPermission = smartSheetsService.checkEditPermission(user.role, user.username, columnHeader);
         
         if (!hasPermission) {
             return responseData(res, "", 403, false, "You can only edit your own column");
         }
 
-        const result = await googleSheetsService.updateCell(date, row, column, value);
+        const result = await smartSheetsService.updateCell(date, row, column, value, spreadsheetId);
         
-        return responseData(res, result, 200, true, "Cell updated successfully");
+        return responseData(res, "OK", 200, true, "Cell updated successfully", result);
     } catch (error) {
         console.error("Error updating cell:", error);
         return responseData(res, "", 500, false, "Failed to update cell");
@@ -130,9 +136,10 @@ export const batchUpdateCells = async (req, res) => {
         }
 
         const user = await getUserFromToken(req);
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
 
         // Get sheet data to check column headers for permission validation
-        const sheetData = await googleSheetsService.getSheetData(date);
+        const sheetData = await smartSheetsService.getSheetData(date, spreadsheetId);
         const headers = sheetData.headers;
 
         // Validate permissions for all updates
@@ -142,16 +149,16 @@ export const batchUpdateCells = async (req, res) => {
             }
 
             const columnHeader = headers[update.column];
-            const hasPermission = googleSheetsService.checkEditPermission(user.role, user.username, columnHeader);
+            const hasPermission = smartSheetsService.checkEditPermission(user.role, user.username, columnHeader);
             
             if (!hasPermission) {
                 return responseData(res, "", 403, false, `You can only edit your own column. Unauthorized column: ${columnHeader}`);
             }
         }
 
-        const result = await googleSheetsService.batchUpdateCells(date, updates);
+        const result = await smartSheetsService.batchUpdateCells(date, updates, spreadsheetId);
         
-        return responseData(res, result, 200, true, "Cells updated successfully");
+        return responseData(res, "OK", 200, true, "Cells updated successfully", result);
     } catch (error) {
         console.error("Error batch updating cells:", error);
         return responseData(res, "", 500, false, "Failed to update cells");
@@ -211,9 +218,10 @@ export const createDateSheet = async (req, res) => {
         console.log('🚀 Attempting to create date sheet for:', date);
         console.log('👥 Team members:', teamMembers);
         
-        const result = await googleSheetsService.createDateSheet(date, teamMembers);
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
+        const result = await smartSheetsService.createDateSheet(date, teamMembers, spreadsheetId);
         
-        return responseData(res, result, 201, true, "Date sheet created successfully");
+        return responseData(res, "OK", 201, true, "Date sheet created successfully", result);
     } catch (error) {
         console.error("Unexpected error creating date sheet:", error);
         return responseData(res, "", 500, false, `Failed to create date sheet: ${error.message}`);
@@ -260,9 +268,11 @@ export const deleteDateSheet = async (req, res) => {
             return responseData(res, "", 400, false, "Date parameter is required");
         }
 
-        const result = await googleSheetsService.deleteSheet(date);
+        const user = await getUserFromToken(req);
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
+        const result = await smartSheetsService.deleteSheet(date, spreadsheetId);
         
-        return responseData(res, result, 200, true, "Date sheet deleted successfully");
+        return responseData(res, "OK", 200, true, "Date sheet deleted successfully", result);
     } catch (error) {
         console.error("Error deleting date sheet:", error);
         return responseData(res, "", 500, false, "Failed to delete date sheet");
@@ -277,7 +287,7 @@ export const getTeamMembers = async (req, res) => {
         const user = await getUserFromToken(req);
         const teamMembers = await getTeamMembersFromOrg(user.organization);
 
-        return responseData(res, teamMembers, 200, true, "Team members retrieved successfully");
+        return responseData(res, "OK", 200, true, "Team members retrieved successfully", teamMembers);
     } catch (error) {
         console.error("Error getting team members:", error);
         return responseData(res, "", 500, false, "Failed to retrieve team members");

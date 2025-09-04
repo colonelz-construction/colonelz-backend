@@ -50,19 +50,19 @@ class SmartSheetsService {
     }
 
     // Proxy all methods to the active service
-    async testConnection() {
+    async testConnection(spreadsheetIdOverride) {
         const service = await this.getService();
-        return service.testConnection();
+        return service.testConnection(spreadsheetIdOverride);
     }
 
-    async getSheetTabs() {
+    async getSheetTabs(spreadsheetIdOverride) {
         const service = await this.getService();
-        return service.getSheetTabs();
+        return service.getSheetTabs(spreadsheetIdOverride);
     }
 
-    async createDateSheet(date, teamMembers) {
+    async createDateSheet(date, teamMembers, spreadsheetIdOverride) {
         const service = await this.getService();
-        const result = await service.createDateSheet(date, teamMembers);
+        const result = await service.createDateSheet(date, teamMembers, spreadsheetIdOverride);
         
         if (this.usingMock) {
             result.message += ' (using mock service - configure Google Sheets credentials for production)';
@@ -71,24 +71,24 @@ class SmartSheetsService {
         return result;
     }
 
-    async getSheetData(sheetName) {
+    async getSheetData(sheetName, spreadsheetIdOverride) {
         const service = await this.getService();
-        return service.getSheetData(sheetName);
+        return service.getSheetData(sheetName, spreadsheetIdOverride);
     }
 
-    async updateCell(sheetName, row, column, value) {
+    async updateCell(sheetName, row, column, value, spreadsheetIdOverride) {
         const service = await this.getService();
-        return service.updateCell(sheetName, row, column, value);
+        return service.updateCell(sheetName, row, column, value, spreadsheetIdOverride);
     }
 
-    async batchUpdateCells(sheetName, updates) {
+    async batchUpdateCells(sheetName, updates, spreadsheetIdOverride) {
         const service = await this.getService();
-        return service.batchUpdateCells(sheetName, updates);
+        return service.batchUpdateCells(sheetName, updates, spreadsheetIdOverride);
     }
 
-    async deleteSheet(sheetName) {
+    async deleteSheet(sheetName, spreadsheetIdOverride) {
         const service = await this.getService();
-        return service.deleteSheet(sheetName);
+        return service.deleteSheet(sheetName, spreadsheetIdOverride);
     }
 
     async getTeamMembers(orgId) {
