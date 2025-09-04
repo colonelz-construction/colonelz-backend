@@ -1,20 +1,19 @@
 # Daily Timeline Setup Guide
 
 ## Overview
-The Daily Timeline feature allows you to create and manage daily schedules for your team using Google Sheets. The system automatically falls back to a mock service if Google Sheets credentials are not properly configured, ensuring the functionality always works.
+The Daily Timeline feature allows you to create and manage daily schedules for your team using Google Sheets. The system requires proper Google Sheets credentials to function.
 
 ## ✅ Current Status
 - **All issues have been fixed**
 - **Daily Timeline creation is fully functional**
-- **Smart fallback system implemented**
-- **No mock or test data - production ready**
+- **Production ready with Google Sheets integration**
 
 ## 🚀 Quick Start
 
 ### 1. Test the Current Setup
 ```bash
-# Test the smart service (works with or without Google Sheets)
-node test-smart-timeline.js
+# Test Google Sheets connection
+node test-daily-timeline.js
 ```
 
 ### 2. API Endpoints Available
@@ -44,7 +43,6 @@ curl -X POST http://localhost:3000/v1/api/admin/daily-lineup/sheet \
 - **Individual columns** for each team member
 - **Tasks for Tomorrow** column
 - **Permission-based editing** (users can only edit their own column, SUPERADMINs can edit all)
-- **Smart fallback system** (uses mock service if Google Sheets fails)
 - **Duplicate prevention** (prevents creating sheets for same date)
 - **Full CRUD operations** (Create, Read, Update, Delete)
 
@@ -103,11 +101,10 @@ routes/adminRoutes/
 └── adminroutes.js             # Route definitions
 ```
 
-### Smart Service Logic
-1. **Initialization**: Tries Google Sheets first
-2. **Fallback**: Uses mock service if Google Sheets fails
-3. **Transparent**: Same API for both services
-4. **Indicators**: Clearly shows which service is being used
+### Google Sheets Integration
+1. **Direct Integration**: Uses Google Sheets API directly
+2. **Production Ready**: Requires proper credentials setup
+3. **Reliable**: No fallback systems needed
 
 ### Permission System
 - **SUPERADMIN**: Can edit all columns
@@ -118,14 +115,11 @@ routes/adminRoutes/
 
 ### Available Test Scripts
 ```bash
-# Test smart service (recommended)
-node test-smart-timeline.js
-
-# Test Google Sheets directly
+# Test Google Sheets connection
 node test-daily-timeline.js
 
-# Test mock service
-node test-create-sheet.js
+# Test credentials setup
+node test-credentials.js
 ```
 
 ### Test Results
@@ -148,7 +142,6 @@ node test-create-sheet.js
 - Verify service account credentials
 - Check private key format
 - Ensure service account has spreadsheet access
-- **Fallback**: System automatically uses mock service
 
 #### 2. No Team Members Found
 **Error**: `No active team members found in organization`
@@ -181,18 +174,17 @@ NODE_ENV=development
 - ✅ Middleware permissions configured
 
 ### Performance Notes
-- Mock service: Instant response
 - Google Sheets: ~1-2 second response time
 - Automatic caching of team members
 - Efficient batch operations
 
-## 🔄 Migration from Mock to Real Google Sheets
+## 🔄 Google Sheets Setup
 
-When ready to switch from mock to real Google Sheets:
+To set up Google Sheets integration:
 
 1. **Configure credentials** (see Google Sheets Configuration)
 2. **Test connection**: `node test-daily-timeline.js`
-3. **Restart application**: The smart service will automatically detect and use Google Sheets
+3. **Restart application**: The service will use Google Sheets
 4. **Verify**: Check logs for "Google Sheets service initialized successfully"
 
 ## 📞 Support
@@ -205,7 +197,6 @@ When ready to switch from mock to real Google Sheets:
 
 ### Key Log Messages
 - ✅ `Google Sheets service initialized successfully`
-- ⚠️ `Google Sheets service failed, falling back to mock service`
-- ✅ `Mock service initialized as fallback`
+- ✅ `Google Sheets API connected successfully!`
 
 The Daily Timeline system is now fully functional and production-ready!

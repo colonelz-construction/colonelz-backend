@@ -3751,7 +3751,7 @@ router.route("/daily-lineup/team-members").get(verifyJWT, readDailyLineUpAccess,
 router.route("/daily-lineup/test-connection").get(verifyJWT, async (req, res) => {
     try {
         const { responseData } = await import("../../../utils/respounse.js");
-        const smartSheetsService = (await import("../../../utils/smartSheets.service.js")).default;
+        const googleSheetsService = (await import("../../../utils/googleSheets.service.js")).default;
         const { getDailyLineUpSpreadsheetIdByOrgId } = await import("../../utils/orgConfig.service.js");
         const registerModel = (await import("../../../models/usersModels/register.model.js")).default;
         const jwt = (await import("jsonwebtoken")).default;
@@ -3763,19 +3763,17 @@ router.route("/daily-lineup/test-connection").get(verifyJWT, async (req, res) =>
         const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user?.organization);
 
         // Test the connection
-        await smartSheetsService.testConnection(spreadsheetId);
-        const sheets = await smartSheetsService.getSheetTabs(spreadsheetId);
+        await googleSheetsService.testConnection(spreadsheetId);
+        const sheets = await googleSheetsService.getSheetTabs(spreadsheetId);
         
         return responseData(res, { 
             connected: true, 
-            usingMock: smartSheetsService.isUsingMock(),
             spreadsheetId,
             sheetsCount: sheets.length,
             sheets: sheets.map(s => s.title)
-        }, 200, true, smartSheetsService.isUsingMock() ? "Mock service connection successful" : "Google Sheets connection successful");
+        }, 200, true, "Google Sheets connection successful");
     } catch (error) {
         const { responseData } = await import("../../../utils/respounse.js");
-        console.error("Sheets service connection test failed:", error);
         return responseData(res, { 
             connected: false, 
             error: error.message,

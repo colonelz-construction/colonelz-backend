@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { responseData } from "../utils/respounse.js";
 import registerModel from "../models/usersModels/register.model.js";
-import smartSheetsService from "../utils/smartSheets.service.js";
+import googleSheetsService from "../utils/googleSheets.service.js";
 import { getDailyLineUpSpreadsheetIdByOrgId } from "../utils/orgConfig.service.js";
 
 
@@ -2444,7 +2444,7 @@ export const updateDailyLineUpAccess = async (req, res, next) => {
 
             if (date && targetColumns.every(c => Number.isInteger(c))) {
                 const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
-                const sheetData = await smartSheetsService.getSheetData(date, spreadsheetId);
+                const sheetData = await googleSheetsService.getSheetData(date, spreadsheetId);
                 const headers = sheetData?.headers || [];
                 const isAuthorized = targetColumns.every(colIdx => headers[colIdx] === user.username);
                 if (isAuthorized) {
