@@ -3751,26 +3751,27 @@ router.route("/daily-lineup/team-members").get(verifyJWT, readDailyLineUpAccess,
 router.route("/daily-lineup/test-connection").get(verifyJWT, async (req, res) => {
     try {
         const { responseData } = await import("../../../utils/respounse.js");
-        const googleSheetsService = (await import("../../../utils/googleSheets.service.js")).default;
+        const smartSheetsService = (await import("../../../utils/smartSheets.service.js")).default;
         
         // Test the connection
-        await googleSheetsService.testConnection();
-        const sheets = await googleSheetsService.getSheetTabs();
+        await smartSheetsService.testConnection();
+        const sheets = await smartSheetsService.getSheetTabs();
         
         return responseData(res, { 
             connected: true, 
+            usingMock: smartSheetsService.isUsingMock(),
             spreadsheetId: process.env.GOOGLE_SHEETS_ID,
             sheetsCount: sheets.length,
             sheets: sheets.map(s => s.title)
-        }, 200, true, "Google Sheets connection successful");
+        }, 200, true, smartSheetsService.isUsingMock() ? "Mock service connection successful" : "Google Sheets connection successful");
     } catch (error) {
         const { responseData } = await import("../../../utils/respounse.js");
-        console.error("Google Sheets connection test failed:", error);
+        console.error("Sheets service connection test failed:", error);
         return responseData(res, { 
             connected: false, 
             error: error.message,
             spreadsheetId: process.env.GOOGLE_SHEETS_ID
-        }, 500, false, "Google Sheets connection failed");
+        }, 500, false, "Sheets service connection failed");
     }
 });
 

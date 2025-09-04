@@ -1,28 +1,7 @@
 import { responseData } from "../../../utils/respounse.js";
 import googleSheetsService from "../../../utils/googleSheets.service.js";
-import mockGoogleSheetsService from "../../../utils/mockSheets.service.js";
 import registerModel from "../../../models/usersModels/register.model.js";
 import jwt from "jsonwebtoken";
-
-// Determine which service to use based on environment or credentials availability
-let sheetsService = googleSheetsService;
-let usingMockService = false;
-
-// Test Google Sheets connection on startup
-(async () => {
-    try {
-        await googleSheetsService.testConnection();
-        console.log('Using real Google Sheets service');
-    } catch (error) {
-        console.warn('Google Sheets service unavailable, falling back to mock service:', error.message);
-        sheetsService = mockGoogleSheetsService;
-        usingMockService = true;
-    }
-})().catch(error => {
-    console.warn('Failed to initialize sheets service, using mock:', error.message);
-    sheetsService = mockGoogleSheetsService;
-    usingMockService = true;
-});
 
 /**
  * Helper function to get user from JWT token
@@ -62,7 +41,7 @@ const getUserFromToken = async (req) => {
  */
 export const getDateSheets = async (req, res) => {
     try {
-        const sheets = await sheetsService.getSheetTabs();
+        const sheets = await googleSheetsService.getSheetTabs();
         
         // Filter out any non-date sheets (if any)
         const dateSheets = sheets.filter(sheet => {
@@ -89,7 +68,7 @@ export const getSheetData = async (req, res) => {
             return responseData(res, "", 400, false, "Date parameter is required");
         }
 
-        const sheetData = await sheetsService.getSheetData(date);
+        const sheetData = await googleSheetsService.getSheetData(date);
         
         return responseData(res, sheetData, 200, true, "Sheet data retrieved successfully");
     } catch (error) {
@@ -113,7 +92,7 @@ export const updateCell = async (req, res) => {
         const user = await getUserFromToken(req);
 
         // Get sheet data to check column headers for permission validation
-        const sheetData = await sheetsService.getSheetData(date);
+        const sheetData = await googleSheetsService.getSheetData(date);
         const headers = sheetData.headers;
         
         if (column >= headers.length) {
@@ -123,13 +102,13 @@ export const updateCell = async (req, res) => {
         const columnHeader = headers[column];
         
         // Check if user has permission to edit this column
-        const hasPermission = sheetsService.checkEditPermission(user.role, user.username, columnHeader);
+        const hasPermission = googleSheetsService.checkEditPermission(user.role, user.username, columnHeader);
         
         if (!hasPermission) {
             return responseData(res, "", 403, false, "You can only edit your own column");
         }
 
-        const result = await sheetsService.updateCell(date, row, column, value);
+        const result = await googleSheetsService.updateCell(date, row, column, value);
         
         return responseData(res, result, 200, true, "Cell updated successfully");
     } catch (error) {
@@ -153,7 +132,7 @@ export const batchUpdateCells = async (req, res) => {
         const user = await getUserFromToken(req);
 
         // Get sheet data to check column headers for permission validation
-        const sheetData = await sheetsService.getSheetData(date);
+        const sheetData = await googleSheetsService.getSheetData(date);
         const headers = sheetData.headers;
 
         // Validate permissions for all updates
@@ -163,14 +142,14 @@ export const batchUpdateCells = async (req, res) => {
             }
 
             const columnHeader = headers[update.column];
-            const hasPermission = sheetsService.checkEditPermission(user.role, user.username, columnHeader);
+            const hasPermission = googleSheetsService.checkEditPermission(user.role, user.username, columnHeader);
             
             if (!hasPermission) {
                 return responseData(res, "", 403, false, `You can only edit your own column. Unauthorized column: ${columnHeader}`);
             }
         }
 
-        const result = await sheetsService.batchUpdateCells(date, updates);
+        const result = await googleSheetsService.batchUpdateCells(date, updates);
         
         return responseData(res, result, 200, true, "Cells updated successfully");
     } catch (error) {
@@ -194,6 +173,11 @@ export const createDateSheet = async (req, res) => {
         let user;
         try {
             user = await getUserFromToken(req);
+            console.error("User from token:", user);
+
+            if (!user) {
+                return responseData(res, "", 401, false, "User not found from token");
+            }
         } catch (tokenError) {
             console.error("Token validation error:", tokenError);
             return responseData(res, "", 401, false, "Invalid or expired token");
@@ -224,27 +208,10 @@ export const createDateSheet = async (req, res) => {
         }
 
         // Create the date sheet
-        let result;
-        try {
-            result = await sheetsService.createDateSheet(date, teamMembers);
-            
-            // Add warning if using mock service
-            if (usingMockService) {
-                result.warning = "Using mock service - Google Sheets credentials not available";
-            }
-        } catch (sheetsError) {
-            console.error("Sheets service error:", sheetsError);
-            if (sheetsError.message.includes("already exists")) {
-                return responseData(res, "", 409, false, sheetsError.message);
-            }
-            if (sheetsError.message.includes("authentication") || sheetsError.message.includes("credentials")) {
-                return responseData(res, "", 500, false, "Google Sheets authentication failed");
-            }
-            if (sheetsError.message.includes("permission") || sheetsError.message.includes("access")) {
-                return responseData(res, "", 403, false, "Insufficient permissions to access Google Sheets");
-            }
-            return responseData(res, "", 500, false, `Sheets service error: ${sheetsError.message}`);
-        }
+        console.log('🚀 Attempting to create date sheet for:', date);
+        console.log('👥 Team members:', teamMembers);
+        
+        const result = await googleSheetsService.createDateSheet(date, teamMembers);
         
         return responseData(res, result, 201, true, "Date sheet created successfully");
     } catch (error) {
@@ -293,7 +260,7 @@ export const deleteDateSheet = async (req, res) => {
             return responseData(res, "", 400, false, "Date parameter is required");
         }
 
-        const result = await sheetsService.deleteSheet(date);
+        const result = await googleSheetsService.deleteSheet(date);
         
         return responseData(res, result, 200, true, "Date sheet deleted successfully");
     } catch (error) {
