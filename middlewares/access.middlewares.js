@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import { responseData } from "../utils/respounse.js";
 import registerModel from "../models/usersModels/register.model.js";
+import googleSheetsService from "../utils/googleSheets.service.js";
+import { getDailyLineUpSpreadsheetIdByOrgId } from "../utils/orgConfig.service.js";
 
 
 //  Lead Access
@@ -152,10 +154,10 @@ export const deleteLeadAccess = async (req, res, next) => {
         if (user.role === 'SUPERADMIN') {
             next();
         }
-        // Check if the user has access to create a lead
+        // Check if the user has access to delete a lead
 
         else if (!user.access?.lead?.includes('delete')) {
-            return responseData(res, "", 403, false, "Forbidden: You do not have access to update leads");
+            return responseData(res, "", 403, false, "Forbidden: You do not have access to delete leads");
         }
         else {
             next();
@@ -164,6 +166,46 @@ export const deleteLeadAccess = async (req, res, next) => {
 
     } catch (err) {
         return responseData(res, "", 403, false, "Unauthorized: Invalid token");
+    }
+};
+
+export const deleteProjectAccess = async (req, res, next) => {
+    try {
+        const token = req.cookies?.auth ||
+            req.header("Authorization")?.replace("Bearer", "").trim();
+
+        if (!token) {
+            return responseData(
+                res,
+                "",
+                403,
+                false,
+                "Unauthorized: No token provided"
+            );
+        }
+
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+        const user = await registerModel.findById(decodedToken?.id);
+
+        if (!user) {
+            return responseData(res, "", 403, false, "Unauthorized: User not found");
+        }
+
+        if (user.role === 'SUPERADMIN') {
+            next();
+        }
+        // Check if the user has access to delete a project
+
+        else if (!user.access?.project?.includes('delete')) {
+            return responseData(res, "", 403, false, "Forbidden: You do not have access to delete projects");
+        }
+        else {
+            next();
+        }
+
+    } catch (error) {
+        return responseData(res, "", 500, false, "Internal Server Error");
     }
 };
 
@@ -289,46 +331,7 @@ export const updateProjectAccess = async (req, res, next) => {
         return responseData(res, "", 403, false, "Unauthorized: Invalid token");
     }
 };
-export const deleteProjectAccess = async (req, res, next) => {
-    try {
-        const token = req.cookies?.auth ||
-            req.header("Authorization")?.replace("Bearer", "").trim();
 
-        if (!token) {
-            return responseData(
-                res,
-                "",
-                403,
-                false,
-                "Unauthorized: No token provided"
-            );
-        }
-
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
-        const user = await registerModel.findById(decodedToken?.id);
-
-        if (!user) {
-            return responseData(res, "", 403, false, "Unauthorized: User not found");
-        }
-
-        if (user.role === 'SUPERADMIN') {
-            next();
-        }
-        // Check if the user has access to create a lead
-
-        else if (!user.access?.project?.includes('delete')) {
-            return responseData(res, "", 403, false, "Forbidden: You do not have access to delete project");
-        }
-        else {
-            next();
-        }
-
-
-    } catch (err) {
-        return responseData(res, "", 403, false, "Unauthorized: Invalid token");
-    }
-};
 
 //   MOM Access
 
@@ -2366,12 +2369,170 @@ export const deletedFilecompanyDataAccess = async (req, res, next) => {
     }
 };
 
+// Daily LineUp Access
 
+export const readDailyLineUpAccess = async (req, res, next) => {
+    try {
+        const token = req.cookies?.auth ||
+            req.header("Authorization")?.replace("Bearer", "").trim();
 
+        if (!token) {
+            return responseData(
+                res,
+                "",
+                403,
+                false,
+                "Unauthorized: No token provided"
+            );
+        }
 
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await registerModel.findById(decodedToken?.id);
 
+        if (!user) {
+            return responseData(res, "", 403, false, "Unauthorized: User not found");
+        }
 
+        if (user.role === 'SUPERADMIN') {
+            next();
+        }
+        // Check if the user has access to read daily lineup
+        // else if (!user.access?.dailyLineUp?.includes('read')) {
+        //     return responseData(res, "", 403, false, "Forbidden: You do not have access to view Daily LineUp");
+        // }
+        else {
+            next();
+        }
 
+    } catch (err) {
+        return responseData(res, "", 403, false, "Unauthorized: Invalid token");
+    }
+};
 
+export const updateDailyLineUpAccess = async (req, res, next) => {
+    try {
+        const token = req.cookies?.auth ||
+            req.header("Authorization")?.replace("Bearer", "").trim();
 
+        if (!token) {
+            return responseData(
+                res,
+                "",
+                403,
+                false,
+                "Unauthorized: No token provided"
+            );
+        }
 
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await registerModel.findById(decodedToken?.id);
+
+        if (!user) {
+            return responseData(res, "", 403, false, "Unauthorized: User not found");
+        }
+
+        // Allow SUPERADMIN or users with explicit update access
+        if (user.role === 'SUPERADMIN' || user.access?.dailyLineUp?.includes('update')) {
+            return next();
+        }
+
+        // Column-level fallback: allow users to update only their own column
+        try {
+            const date = req.params?.date || req.body?.date;
+            const hasBatch = Array.isArray(req.body?.updates);
+            const targetColumns = hasBatch ? req.body.updates.map(u => u.column) : [req.body?.column];
+
+            if (date && targetColumns.every(c => Number.isInteger(c))) {
+                const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user.organization);
+                const sheetData = await googleSheetsService.getSheetData(date, spreadsheetId);
+                const headers = sheetData?.headers || [];
+                const isAuthorized = targetColumns.every(colIdx => headers[colIdx] === user.username);
+                if (isAuthorized) {
+                    return next();
+                }
+            }
+        } catch (_) {
+            // fallthrough to forbidden
+        }
+
+        return responseData(res, "", 403, false, "Forbidden: You can only update your own column");
+
+    } catch (err) {
+        return responseData(res, "", 403, false, "Unauthorized: Invalid token");
+    }
+};
+
+export const createDailyLineUpSheetAccess = async (req, res, next) => {
+    try {
+        const token = req.cookies?.auth ||
+            req.header("Authorization")?.replace("Bearer", "").trim();
+
+        if (!token) {
+            return responseData(
+                res,
+                "",
+                403,
+                false,
+                "Unauthorized: No token provided"
+            );
+        }
+
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await registerModel.findById(decodedToken?.id);
+
+        if (!user) {
+            return responseData(res, "", 403, false, "Unauthorized: User not found");
+        }
+
+        if (user.role === 'SUPERADMIN') {
+            next();
+        }
+        // Check if the user has access to create daily lineup sheets
+        else if (!user.access?.dailyLineUp?.includes('create')) {
+            return responseData(res, "", 403, false, "Forbidden: You do not have access to create Daily LineUp sheets");
+        }
+        else {
+            next();
+        }
+
+    } catch (err) {
+        return responseData(res, "", 403, false, "Unauthorized: Invalid token");
+    }
+};
+
+export const deleteDailyLineUpSheetAccess = async (req, res, next) => {
+    try {
+        const token = req.cookies?.auth ||
+            req.header("Authorization")?.replace("Bearer", "").trim();
+
+        if (!token) {
+            return responseData(
+                res,
+                "",
+                403,
+                false,
+                "Unauthorized: No token provided"
+            );
+        }
+
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await registerModel.findById(decodedToken?.id);
+
+        if (!user) {
+            return responseData(res, "", 403, false, "Unauthorized: User not found");
+        }
+
+        if (user.role === 'SUPERADMIN') {
+            next();
+        }
+        else if (!user.access?.dailyLineUp?.includes('delete')) {
+            return responseData(res, "", 403, false, "Forbidden: You do not have access to delete Daily LineUp sheets");
+        }
+        else {
+            next();
+        }
+
+    } catch (err) {
+        return responseData(res, "", 403, false, "Unauthorized: Invalid token");
+    }
+};

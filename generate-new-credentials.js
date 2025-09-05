@@ -1,0 +1,24 @@
+// This script helps generate new Google Service Account credentials
+console.log('To fix Google Sheets authentication, follow these steps:');
+console.log('');
+console.log('1. Go to Google Cloud Console: https://console.cloud.google.com/');
+console.log('2. Select your project: colonelz-daily-lineup');
+console.log('3. Go to IAM & Admin > Service Accounts');
+console.log('4. Find: colonelz-sheets-service@colonelz-daily-lineup.iam.gserviceaccount.com');
+console.log('5. Click on the service account');
+console.log('6. Go to "Keys" tab');
+console.log('7. Click "Add Key" > "Create new key"');
+console.log('8. Select "JSON" format');
+console.log('9. Download the new key file');
+console.log('10. Replace colonelz-daily-lineup.json with the new file');
+console.log('');
+console.log('OR create a completely new service account:');
+console.log('1. Go to IAM & Admin > Service Accounts');
+console.log('2. Click "Create Service Account"');
+console.log('3. Name: colonelz-sheets-service');
+console.log('4. Grant "Editor" role');
+console.log('5. Create and download JSON key');
+console.log('6. Share your Google Sheet with the service account email');
+console.log('');
+console.log('Current spreadsheet ID:', process.env.GOOGLE_SHEETS_ID);
+console.log('Make sure the service account has access to this spreadsheet!');
