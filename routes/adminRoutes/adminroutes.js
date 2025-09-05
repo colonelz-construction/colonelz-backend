@@ -77,7 +77,7 @@ import { createMiniTask, deleteMiniTask, getAllMiniTask, getSingleMiniTask, upda
 import { deleteProjectExecutionTask, deleteProjectExecutionTaskDetails, downloadExecutionChart, getProjectExecutionTask, projectExecutionTask, updateProjectExecutionTask, updateProjectExecutionTaskDetails } from "../../controllers/adminControllers/project_execution_timeline/project_execution_task.js";
 import { createProjectExecutionSubtask, deleteProjectExecutionSubtask, deleteProjectExecutionSubtaskDetails, getProjectExecutionSubtaskAffections, updateProjectExecutionSubtask, updateProjectExecutionSubtaskDetails } from "../../controllers/adminControllers/project_execution_timeline/project_execution_subtask.js";
 import { getDateSheets, getSheetData, updateCell, batchUpdateCells, createDateSheet, deleteDateSheet, getTeamMembers } from "../../controllers/adminControllers/dailyLineUpControllers/dailyLineUp.controller.js";
-import { readDailyLineUpAccess, updateDailyLineUpAccess, createDailyLineUpSheetAccess } from "../../middlewares/access.middlewares.js";
+import { readDailyLineUpAccess, updateDailyLineUpAccess, createDailyLineUpSheetAccess, deleteDailyLineUpSheetAccess } from "../../middlewares/access.middlewares.js";
 
 // router.use(checkAvailableUserIsAdmin)
 
@@ -3744,7 +3744,7 @@ router.route("/daily-lineup/sheet/:date").get(verifyJWT, readDailyLineUpAccess, 
 router.route("/daily-lineup/sheet/:date/cell").put(verifyJWT, updateDailyLineUpAccess, updateCell);
 router.route("/daily-lineup/sheet/:date/batch").put(verifyJWT, updateDailyLineUpAccess, batchUpdateCells);
 router.route("/daily-lineup/sheet").post(verifyJWT, createDailyLineUpSheetAccess, createDateSheet);
-router.route("/daily-lineup/sheet/:date").delete(verifyJWT, createDailyLineUpSheetAccess, deleteDateSheet);
+router.route("/daily-lineup/sheet/:date").delete(verifyJWT, deleteDailyLineUpSheetAccess, deleteDateSheet);
 router.route("/daily-lineup/team-members").get(verifyJWT, readDailyLineUpAccess, getTeamMembers);
 
 // Test endpoint for debugging Google Sheets connection (org-scoped)

@@ -2484,12 +2484,15 @@ export const createDailyLineUpSheetAccess = async (req, res, next) => {
             return responseData(res, "", 403, false, "Unauthorized: User not found");
         }
 
-        // Only SUPERADMIN can create new date sheets
         if (user.role === 'SUPERADMIN') {
             next();
         }
+        // Check if the user has access to create daily lineup sheets
+        else if (!user.access?.dailyLineUp?.includes('create')) {
+            return responseData(res, "", 403, false, "Forbidden: You do not have access to create Daily LineUp sheets");
+        }
         else {
-            return responseData(res, "", 403, false, "Forbidden: Only Superadmins can create new date sheets");
+            next();
         }
 
     } catch (err) {
@@ -2497,12 +2500,39 @@ export const createDailyLineUpSheetAccess = async (req, res, next) => {
     }
 };
 
+export const deleteDailyLineUpSheetAccess = async (req, res, next) => {
+    try {
+        const token = req.cookies?.auth ||
+            req.header("Authorization")?.replace("Bearer", "").trim();
 
+        if (!token) {
+            return responseData(
+                res,
+                "",
+                403,
+                false,
+                "Unauthorized: No token provided"
+            );
+        }
 
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await registerModel.findById(decodedToken?.id);
 
+        if (!user) {
+            return responseData(res, "", 403, false, "Unauthorized: User not found");
+        }
 
+        if (user.role === 'SUPERADMIN') {
+            next();
+        }
+        else if (!user.access?.dailyLineUp?.includes('delete')) {
+            return responseData(res, "", 403, false, "Forbidden: You do not have access to delete Daily LineUp sheets");
+        }
+        else {
+            next();
+        }
 
-
-
-
-
+    } catch (err) {
+        return responseData(res, "", 403, false, "Unauthorized: Invalid token");
+    }
+};
