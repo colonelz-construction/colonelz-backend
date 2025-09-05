@@ -434,7 +434,7 @@ export const addBulkMembers = async (req, res) => {
 
         // Return appropriate response
         if (results.length === 0) {
-            return responseData(res, "", 400, false, "No users were added to the project", {
+            return responseData(res, "", 400, false, "Users Already Exists.", {
                 errors,
                 totalProcessed: processedCount,
                 successful: 0,
