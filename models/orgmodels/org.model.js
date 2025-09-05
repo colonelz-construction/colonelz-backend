@@ -63,6 +63,12 @@ const orgSchema = new mongoose.Schema({
         // required:true,
     },
 
+    // Spreadsheet configuration for Daily LineUp (per-organization isolation)
+    daily_lineup_spreadsheet_id: {
+        type: String,
+        // optional: if not set, backend may fall back to env GOOGLE_SHEETS_ID
+    },
+
     createdAt: {
         type: Date,
         default: Date.now,

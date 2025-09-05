@@ -32,6 +32,9 @@ import {
   getSingleProject,
   projectActivity,
   updateProjectDetails,
+  deactivateProject,
+  deleteInactiveProject,
+  reactivateProject,
 } from "../../controllers/adminControllers/projectController/project.controller.js";
 import {
   getQuotationData,
@@ -46,19 +49,19 @@ import { getSingleTemplateFile, templateFileUpload } from "../../controllers/adm
 import { deleteFile, deleteFolder } from "../../controllers/adminControllers/fileUploadController/delete.file.controller.js";
 import { shareQuotation, updateStatus, updateStatusAdmin } from "../../controllers/adminControllers/quotationController/quotation.approval.controller.js";
 import { archiveUser, createUser, deleteUser, deleteUserArchive, getUser, restoreUser, updateUserRole } from "../../controllers/adminControllers/createuser.controllers/createuser.controller.js";
-import { addMember, listUserInProject, removeMemberInProject } from "../../controllers/adminControllers/projectController/addmember.project.controller.js";
+import { addMember, addBulkMembers, listUserInProject, removeMemberInProject } from "../../controllers/adminControllers/projectController/addmember.project.controller.js";
 import { checkAvailableUserIsAdmin, checkAvailableUserIsAdminInFile, checkAvailableUserIsAdminInLead, checkAvailableUserIsAdminInMom, checkAvailableUserIsAdmininProject, checkAvailableUserIsAdmininProjectByLeadid, checkOpenTaskReadAccess, isAdmin } from "../../middlewares/auth.middlewares.js";
 
 
 import { verifyJWT } from "../../middlewares/auth.middlewares.js";
 import { contractStatus, getContractData, shareContract } from "../../controllers/adminControllers/fileUploadController/contract.share.controller.js";
-import { AddMemberInLead, listUserInLead, removeMemberInlead } from "../../controllers/adminControllers/leadController/addmemberinlead.controller.js";
+import { AddMemberInLead, addBulkMembersToLead, listUserInLead, removeMemberInlead } from "../../controllers/adminControllers/leadController/addmemberinlead.controller.js";
 import { archive, deletearchive, restoreData } from "../../controllers/adminControllers/archiveControllers/archive.controller.js";
 import { createTask, deleteTask, getAllTaskWithData, getAllTasks, getSingleTask, updateTask } from "../../controllers/adminControllers/taskControllers/task.controller.js";
 import { createSubTask, deleteSubTask, getAllSubTask, getSingleSubTask, updateSubTask } from "../../controllers/adminControllers/taskControllers/subtask.controller.js";
 import { GetSingleMinitimerController, GetSingleSubtimerController, GetSingleTasktimerController, UpdateMinitimerController, UpdateSubtimerController, UpdateTasktimerController } from "../../controllers/adminControllers/timerControllers/timer.controller.js";
 import { getProjectUser, getProjectUserList, getUserList } from "../../controllers/adminControllers/createuser.controllers/getuser.controller.js";
-import { createAddMember, createContractAccess, createLeadAccess, createLeadTaskAccess, createMomAccess, createOpenTaskAccess, createProjectAccess, createQuotationAccess, CreateRoleAccess, createTaskAccess, CreateUserAccess, deleteAddMember, deleteArchiveAccess, deleteArchiveUserAccess, deletedFileAccess, deleteLeadAccess, deleteLeadTskAccess, deleteMomAccess, deleteOpenTskAccess, deleteRole, deleteTskAccess, deleteUserAccess, GetArchiveUser, GetRole, GetUser, moveOpenTaskAccess, readArchiveAccess, readContractAccess, readFileAccess, readFileCompanyDataAccess, readLeadAccess, readLeadTaskAccess, readMomAccess, readOpenTaskAccess, readProjectAccess, readQuotationAccess, readTaskAccess, restoreArchiveAccess, restoreUserAccess, updateContractAccess, updateLeadAccess, updateLeadTaskAccess, updateMomAccess, updateOpenTaskAccess, updateProjectAccess, updateQuotationAccess, updateRole, updateTaskAccess, updateUserRoleAccess } from "../../middlewares/access.middlewares.js";
+import { createAddMember, createContractAccess, createLeadAccess, createLeadTaskAccess, createMomAccess, createOpenTaskAccess, createProjectAccess, createQuotationAccess, CreateRoleAccess, createTaskAccess, CreateUserAccess, deleteAddMember, deleteArchiveAccess, deleteArchiveUserAccess, deletedFileAccess, deleteLeadAccess, deleteLeadTskAccess, deleteMomAccess, deleteOpenTskAccess, deleteProjectAccess, deleteRole, deleteTskAccess, deleteUserAccess, GetArchiveUser, GetRole, GetUser, moveOpenTaskAccess, readArchiveAccess, readContractAccess, readFileAccess, readFileCompanyDataAccess, readLeadAccess, readLeadTaskAccess, readMomAccess, readOpenTaskAccess, readProjectAccess, readQuotationAccess, readTaskAccess, restoreArchiveAccess, restoreUserAccess, updateContractAccess, updateLeadAccess, updateLeadTaskAccess, updateMomAccess, updateOpenTaskAccess, updateProjectAccess, updateQuotationAccess, updateRole, updateTaskAccess, updateUserRoleAccess } from "../../middlewares/access.middlewares.js";
 import { createRole, DeleteRole, getRole, roleName, roleWiseAccess, UpdateRole } from "../../controllers/adminControllers/createRoleControllers/role.controllers.js";
 import { verify } from "crypto";
 import { createLeadTask, deleteLeadTask, getAllLeadTasks, getAllLeadTaskWithData, getSingleLeadTask, updateLeadTask } from "../../controllers/adminControllers/leadTaskControllers/task.controller.js";
@@ -73,6 +76,8 @@ import { createLeadMiniTask, deleteLeadMiniTask, getAllLeadMiniTask, getSingleLe
 import { createMiniTask, deleteMiniTask, getAllMiniTask, getSingleMiniTask, updateMiniTask } from "../../controllers/adminControllers/taskControllers/minitask.controller.js";
 import { deleteProjectExecutionTask, deleteProjectExecutionTaskDetails, downloadExecutionChart, getProjectExecutionTask, projectExecutionTask, updateProjectExecutionTask, updateProjectExecutionTaskDetails } from "../../controllers/adminControllers/project_execution_timeline/project_execution_task.js";
 import { createProjectExecutionSubtask, deleteProjectExecutionSubtask, deleteProjectExecutionSubtaskDetails, getProjectExecutionSubtaskAffections, updateProjectExecutionSubtask, updateProjectExecutionSubtaskDetails } from "../../controllers/adminControllers/project_execution_timeline/project_execution_subtask.js";
+import { getDateSheets, getSheetData, updateCell, batchUpdateCells, createDateSheet, deleteDateSheet, getTeamMembers } from "../../controllers/adminControllers/dailyLineUpControllers/dailyLineUp.controller.js";
+import { readDailyLineUpAccess, updateDailyLineUpAccess, createDailyLineUpSheetAccess, deleteDailyLineUpSheetAccess } from "../../middlewares/access.middlewares.js";
 
 // router.use(checkAvailableUserIsAdmin)
 
@@ -229,6 +234,7 @@ router.route("/create/user").post(verifyJWT, CreateUserAccess, createUser);
  */
 
 router.route("/add/member").post(verifyJWT, createAddMember, addMember);
+router.route("/add/bulk/members").post(verifyJWT, createAddMember, addBulkMembers);
 /**
  * @swagger
  * /v1/api/admin/get/alluser:
@@ -654,6 +660,12 @@ router.route("/getsingle/project").get(verifyJWT, readProjectAccess, getSinglePr
  */
 
 router.route("/update/project").put(verifyJWT, updateProjectAccess, updateProjectDetails);
+
+// Project status management routes
+router.route("/deactivate/project").put(verifyJWT, updateProjectAccess, deactivateProject);
+router.route("/reactivate/project").put(verifyJWT, updateProjectAccess, reactivateProject);
+router.route("/delete/inactive/project").delete(verifyJWT, deleteProjectAccess, deleteInactiveProject);
+
 /**
  * @swagger
  * paths:
@@ -2010,6 +2022,7 @@ router.route("/create/lead/project").post(verifyJWT, createProjectAccess, leadTo
  */
 
 router.route("/add/member/lead").post(verifyJWT, createAddMember, AddMemberInLead);
+router.route("/add/bulk/members/lead").post(verifyJWT, createAddMember, addBulkMembersToLead);
 /**
  * @swagger
  * paths:
@@ -3725,5 +3738,48 @@ router.route("/get/project/execution/subtask/affections").get(verifyJWT, getProj
 
 
 
+// Daily LineUp Routes
+router.route("/daily-lineup/sheets").get(verifyJWT, readDailyLineUpAccess, getDateSheets);
+router.route("/daily-lineup/sheet/:date").get(verifyJWT, readDailyLineUpAccess, getSheetData);
+router.route("/daily-lineup/sheet/:date/cell").put(verifyJWT, updateDailyLineUpAccess, updateCell);
+router.route("/daily-lineup/sheet/:date/batch").put(verifyJWT, updateDailyLineUpAccess, batchUpdateCells);
+router.route("/daily-lineup/sheet").post(verifyJWT, createDailyLineUpSheetAccess, createDateSheet);
+router.route("/daily-lineup/sheet/:date").delete(verifyJWT, deleteDailyLineUpSheetAccess, deleteDateSheet);
+router.route("/daily-lineup/team-members").get(verifyJWT, readDailyLineUpAccess, getTeamMembers);
+
+// Test endpoint for debugging Google Sheets connection (org-scoped)
+router.route("/daily-lineup/test-connection").get(verifyJWT, async (req, res) => {
+    try {
+        const { responseData } = await import("../../../utils/respounse.js");
+        const googleSheetsService = (await import("../../../utils/googleSheets.service.js")).default;
+        const { getDailyLineUpSpreadsheetIdByOrgId } = await import("../../utils/orgConfig.service.js");
+        const registerModel = (await import("../../../models/usersModels/register.model.js")).default;
+        const jwt = (await import("jsonwebtoken")).default;
+        
+        // Resolve org spreadsheet from current user
+        const token = req.cookies?.auth || req.header("Authorization")?.replace("Bearer", "").trim();
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await registerModel.findById(decoded?.id).lean();
+        const spreadsheetId = await getDailyLineUpSpreadsheetIdByOrgId(user?.organization);
+
+        // Test the connection
+        await googleSheetsService.testConnection(spreadsheetId);
+        const sheets = await googleSheetsService.getSheetTabs(spreadsheetId);
+        
+        return responseData(res, { 
+            connected: true, 
+            spreadsheetId,
+            sheetsCount: sheets.length,
+            sheets: sheets.map(s => s.title)
+        }, 200, true, "Google Sheets connection successful");
+    } catch (error) {
+        const { responseData } = await import("../../../utils/respounse.js");
+        return responseData(res, { 
+            connected: false, 
+            error: error.message,
+            spreadsheetId: null
+        }, 500, false, "Sheets service connection failed");
+    }
+});
 
 export default router;

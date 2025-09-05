@@ -224,3 +224,251 @@ export const listUserInLead = async (req, res) => {
         return responseData(res, "", 500, false, "Internal Server Error");
     }
 };
+
+// New bulk assignment function for leads
+export const addBulkMembersToLead = async (req, res) => {
+    const { id, lead_id, users, org_id } = req.body;
+
+    // Input validation with detailed error messages
+    if (!id) {
+        return responseData(res, "", 400, false, "Please provide Id");
+    }
+    if (!lead_id) {
+        return responseData(res, "", 400, false, "Please provide lead Id");
+    }
+    if (!users || !Array.isArray(users) || users.length === 0) {
+        return responseData(res, "", 400, false, "Please provide users array");
+    }
+    if (!org_id) {
+        return responseData(res, "", 400, false, "org id is required");
+    }
+
+    // Validate users array structure
+    for (let i = 0; i < users.length; i++) {
+        const user = users[i];
+        if (!user || typeof user !== 'object') {
+            return responseData(res, "", 400, false, `Invalid user object at index ${i}`);
+        }
+        if (!user.user_name || typeof user.user_name !== 'string' || user.user_name.trim() === '') {
+            return responseData(res, "", 400, false, `Invalid or missing user_name at index ${i}`);
+        }
+        if (!user.role || typeof user.role !== 'string' || user.role.trim() === '') {
+            return responseData(res, "", 400, false, `Invalid or missing role at index ${i}`);
+        }
+    }
+
+    console.log(`[BULK_ASSIGN_LEAD] Starting bulk assignment for lead ${lead_id} with ${users.length} users`);
+
+    try {
+        // Verify organization exists
+        const check_org = await orgModel.findOne({ _id: org_id });
+        if (!check_org) {
+            console.log(`[BULK_ASSIGN_LEAD] Organization not found: ${org_id}`);
+            return responseData(res, "", 404, false, "Organization not found");
+        }
+
+        // Verify lead exists
+        const find_lead = await leadModel.findOne({ lead_id: lead_id, org_id: org_id });
+        if (!find_lead) {
+            console.log(`[BULK_ASSIGN_LEAD] Lead not found: ${lead_id}`);
+            return responseData(res, "", 404, false, "Lead not found");
+        }
+
+        // Verify requesting user exists
+        const find_user = await registerModel.findOne({ _id: id, organization: org_id });
+        if (!find_user) {
+            console.log(`[BULK_ASSIGN_LEAD] Requesting user not found: ${id}`);
+            return responseData(res, "", 404, false, "Requesting user not found");
+        }
+
+        const results = [];
+        const errors = [];
+        let processedCount = 0;
+
+        // Process each user individually with comprehensive error handling
+        for (const user of users) {
+            const { user_name, role } = user;
+            processedCount++;
+
+            console.log(`[BULK_ASSIGN_LEAD] Processing user ${processedCount}/${users.length}: ${user_name}`);
+
+            try {
+                // Find target user
+                const find_user_name = await registerModel.findOne({
+                    username: user_name.trim(),
+                    organization: org_id
+                });
+
+                if (!find_user_name) {
+                    const errorMsg = `User '${user_name}' not found in organization`;
+                    console.log(`[BULK_ASSIGN_LEAD] ${errorMsg}`);
+                    errors.push(errorMsg);
+                    continue;
+                }
+
+                // Ensure user has proper data structure
+                if (!find_user_name.data || !Array.isArray(find_user_name.data)) {
+                    console.log(`[BULK_ASSIGN_LEAD] Initializing data array for user: ${user_name}`);
+                    const initResult = await registerModel.findOneAndUpdate(
+                        { username: user_name.trim(), organization: org_id },
+                        { $set: { data: [{ projectData: [], leadData: [], notificationData: [] }] } },
+                        { new: true }
+                    );
+                    if (!initResult) {
+                        const errorMsg = `Failed to initialize data structure for user '${user_name}'`;
+                        console.log(`[BULK_ASSIGN_LEAD] ${errorMsg}`);
+                        errors.push(errorMsg);
+                        continue;
+                    }
+                }
+
+                // Check for duplicate assignment using direct query
+                const existing_assignment = await registerModel.findOne({
+                    username: user_name.trim(),
+                    organization: org_id,
+                    "data.leadData.lead_id": lead_id
+                });
+
+                if (existing_assignment) {
+                    const errorMsg = `User '${user_name}' is already assigned to this lead`;
+                    console.log(`[BULK_ASSIGN_LEAD] ${errorMsg}`);
+                    errors.push(errorMsg);
+                    continue;
+                }
+
+                // Ensure leadData array exists for this user
+                await registerModel.findOneAndUpdate(
+                    {
+                        username: user_name.trim(),
+                        organization: org_id,
+                        "data.leadData": { $exists: false }
+                    },
+                    {
+                        $push: { data: { projectData: [], leadData: [], notificationData: [] } }
+                    }
+                );
+
+                // Add user to lead with robust atomic operation
+                const leadUpdateResult = await registerModel.findOneAndUpdate(
+                    {
+                        username: user_name.trim(),
+                        organization: org_id
+                    },
+                    {
+                        $push: {
+                            "data.$[elem].leadData": {
+                                lead_id: lead_id,
+                                role: role.trim(),
+                                assignedAt: new Date()
+                            }
+                        }
+                    },
+                    {
+                        arrayFilters: [{ "elem.leadData": { $exists: true } }],
+                        new: true
+                    }
+                );
+
+                if (!leadUpdateResult) {
+                    const errorMsg = `Failed to add user '${user_name}' to lead - database update failed`;
+                    console.log(`[BULK_ASSIGN_LEAD] ${errorMsg}`);
+                    errors.push(errorMsg);
+                    continue;
+                }
+
+                // Verify the assignment was actually added
+                const verifyAssignment = await registerModel.findOne({
+                    username: user_name.trim(),
+                    organization: org_id,
+                    "data.leadData.lead_id": lead_id
+                });
+
+                if (!verifyAssignment) {
+                    const errorMsg = `Failed to verify assignment for user '${user_name}' - assignment not found after update`;
+                    console.log(`[BULK_ASSIGN_LEAD] ${errorMsg}`);
+                    errors.push(errorMsg);
+                    continue;
+                }
+
+                // Add notification with robust atomic operation
+                try {
+                    const notificationUpdateResult = await registerModel.findOneAndUpdate(
+                        {
+                            username: user_name.trim(),
+                            organization: org_id
+                        },
+                        {
+                            $push: {
+                                "data.$[elem].notificationData": {
+                                    _id: new Mongoose.Types.ObjectId(),
+                                    itemId: lead_id,
+                                    notification_id: generatedigitnumber(),
+                                    type: "lead",
+                                    status: false,
+                                    message: `You are added in lead ${find_lead.name}`,
+                                    createdAt: new Date()
+                                }
+                            }
+                        },
+                        {
+                            arrayFilters: [{ "elem.notificationData": { $exists: true } }],
+                            new: true
+                        }
+                    );
+
+                    if (!notificationUpdateResult) {
+                        console.log(`[BULK_ASSIGN_LEAD] Warning: Failed to add notification for user: ${user_name}`);
+                        // Don't fail the assignment for notification failure, just log it
+                    }
+                } catch (notificationError) {
+                    console.log(`[BULK_ASSIGN_LEAD] Warning: Notification error for user ${user_name}: ${notificationError.message}`);
+                    // Don't fail the assignment for notification failure
+                }
+
+                console.log(`[BULK_ASSIGN_LEAD] Successfully assigned user: ${user_name}`);
+                results.push({
+                    user_name: user_name.trim(),
+                    role: role.trim(),
+                    status: "success",
+                    assignedAt: new Date().toISOString(),
+                    lead_id: lead_id
+                });
+            } catch (userError) {
+                const errorMsg = `Error processing user '${user_name}': ${userError.message}`;
+                console.error(`[BULK_ASSIGN_LEAD] ${errorMsg}`, userError);
+                errors.push(errorMsg);
+            }
+        }
+
+        console.log(`[BULK_ASSIGN_LEAD] Completed: ${results.length} successful, ${errors.length} failed`);
+
+        // Return appropriate response
+        if (results.length === 0) {
+            return responseData(res, "", 400, false, "No users were added to the lead", {
+                errors,
+                totalProcessed: processedCount,
+                successful: 0,
+                failed: errors.length
+            });
+        }
+
+        const message = results.length === users.length
+            ? "All members added successfully to lead"
+            : `${results.length} of ${users.length} members added successfully to lead`;
+
+        return responseData(res, message, 200, true, "", {
+            successful: results,
+            errors: errors.length > 0 ? errors : undefined,
+            summary: {
+                totalRequested: users.length,
+                totalProcessed: processedCount,
+                successfulAssignments: results.length,
+                failedAssignments: errors.length
+            }
+        });
+
+    } catch (err) {
+        console.error(`[BULK_ASSIGN_LEAD] Critical error:`, err);
+        return responseData(res, "", 500, false, `Internal server error: ${err.message}`);
+    }
+};
