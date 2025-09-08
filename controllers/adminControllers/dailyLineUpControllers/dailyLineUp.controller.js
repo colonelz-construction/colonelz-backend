@@ -212,7 +212,7 @@ const getTeamMembersFromOrg = async (orgId) => {
         const users = await registerModel.find({
             organization: orgId,
             status: true,
-            role: { $nin: ['ADMIN', 'SUPERADMIN', 'Admin', 'SuperAdmin', 'admin', 'superadmin'] }
+            role: { $nin: ['ADMIN', 'SUPERADMIN', 'Admin', 'SuperAdmin', 'admin', 'superadmin', 'demorole'] }
         }).select('username');
 
         if (!users || users.length === 0) {
