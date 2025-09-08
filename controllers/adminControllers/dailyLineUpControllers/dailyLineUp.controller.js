@@ -209,17 +209,18 @@ const getTeamMembersFromOrg = async (orgId) => {
             throw new Error("Organization ID is required");
         }
 
-        const users = await registerModel.find({ 
-            organization: orgId, 
-            status: true 
+        const users = await registerModel.find({
+            organization: orgId,
+            status: true,
+            role: { $nin: ['ADMIN', 'SUPERADMIN', 'Admin', 'SuperAdmin', 'admin', 'superadmin', 'demorole'] }
         }).select('username');
-        
+
         if (!users || users.length === 0) {
             return [];
         }
 
         const usernames = users.map(user => user.username).filter(username => username && username.trim());
-        
+
         return usernames;
     } catch (error) {
         throw error;

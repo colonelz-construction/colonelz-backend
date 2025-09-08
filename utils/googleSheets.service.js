@@ -238,7 +238,8 @@ class GoogleSheetsService {
                                 title: date,
                                 gridProperties: {
                                     rowCount: 100,
-                                    columnCount: teamMembers.length + 2, // Time + members + Tasks for tomorrow
+                                    // columnCount: teamMembers.length + 3, // Time + members + Tasks for tomorrow + Remarks
+                                    columnCount: 100,
                                 },
                             },
                         },
