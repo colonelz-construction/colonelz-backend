@@ -99,4 +99,14 @@ const lead = new mongoose.Schema({
   },
 });
 
+// Indexes to speed up common queries
+lead.index({ org_id: 1 });
+lead.index({ lead_id: 1 });
+lead.index({ email: 1 });
+lead.index({ phone: 1 });
+lead.index({ status: 1 });
+lead.index({ lead_manager: 1 });
+lead.index({ createdAt: 1 });
+lead.index({ org_id: 1, lead_id: 1 });
+
 export default mongoose.model("Lead", lead, "Lead");

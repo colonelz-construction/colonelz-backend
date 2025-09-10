@@ -15,7 +15,7 @@ const approvalSchema = new mongoose.Schema({
     },
     org_id: 
     { type: String,
-     required: true 
+     required: true,
     },
 
     files: [files],
@@ -25,4 +25,9 @@ const approvalSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
+// Indexes for approvals
+approvalSchema.index({ org_id: 1 });
+approvalSchema.index({ lead_id: 1 });
+approvalSchema.index({ createdAt: -1 });
+approvalSchema.index({ org_id: 1, lead_id: 1 });
 export default mongoose.model("approval", approvalSchema, "approval");

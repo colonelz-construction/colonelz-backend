@@ -43,9 +43,9 @@ const MinitaskSchema = new mongoose.Schema({
 });
 
 const TaskSchema = new mongoose.Schema({
-    project_id: { type: String, required: true },
+    project_id: { type: String, required: true, index: true },
     task_id: { type: String, required: true },
-    org_id: { type: String, required: true },
+    org_id: { type: String, required: true, index: true },
     task_name: { type: String, required: true },
     task_assignee: { type: String},
     task_status: { type: String, required: true },
@@ -64,5 +64,15 @@ const TaskSchema = new mongoose.Schema({
     minitasks: [MinitaskSchema]
 
 });
+
+// Indexes for task queries
+TaskSchema.index({ org_id: 1 });
+TaskSchema.index({ project_id: 1 });
+TaskSchema.index({ task_id: 1 });
+TaskSchema.index({ task_status: 1 });
+TaskSchema.index({ task_priority: 1 });
+TaskSchema.index({ task_createdOn: -1 });
+TaskSchema.index({ org_id: 1, project_id: 1, task_status: 1 });
+TaskSchema.index({ org_id: 1, project_id: 1, task_createdOn: -1 });
 
 export default mongoose.model("task", TaskSchema, "task");

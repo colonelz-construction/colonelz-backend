@@ -71,4 +71,11 @@ const taskWorkSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
+
+// Indexes for timer collections
+taskWorkSchema.index({ org_id: 1 });
+taskWorkSchema.index({ project_id: 1 });
+taskWorkSchema.index({ task_id: 1 });
+taskWorkSchema.index({ createdAt: -1 });
+taskWorkSchema.index({ org_id: 1, project_id: 1, task_id: 1 });
 export default mongoose.model("taskWork", taskWorkSchema, "taskWork");

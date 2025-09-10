@@ -72,4 +72,11 @@ const leadTaskWorkSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
+
+// Indexes for lead timer collections
+leadTaskWorkSchema.index({ org_id: 1 });
+leadTaskWorkSchema.index({ lead_id: 1 });
+leadTaskWorkSchema.index({ task_id: 1 });
+leadTaskWorkSchema.index({ createdAt: -1 });
+leadTaskWorkSchema.index({ org_id: 1, lead_id: 1, task_id: 1 });
 export default mongoose.model("leadTaskWork", leadTaskWorkSchema, "leadTaskWork");

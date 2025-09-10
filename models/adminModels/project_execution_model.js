@@ -52,4 +52,14 @@ const project_execution_Schema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Indexes for faster execution chart queries
+project_execution_Schema.index({ org_id: 1 });
+project_execution_Schema.index({ project_id: 1 });
+project_execution_Schema.index({ task_id: 1 });
+project_execution_Schema.index({ start_date: 1 });
+project_execution_Schema.index({ end_date: 1 });
+project_execution_Schema.index({ org_id: 1, project_id: 1 });
+project_execution_Schema.index({ project_id: 1, start_date: 1 });
+
 export default mongoose.model("project_execution", project_execution_Schema, "project_execution");
