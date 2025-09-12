@@ -64,7 +64,14 @@ export const shareFile = async (req, res) => {
                 for (let i = 0; i < findfiles.files.length; i++) {
                     for (let j = 0; j < findfiles.files[i].files.length; j++) {
                         if (fileId.includes(findfiles.files[i].files[j].fileId)) {
-                            attachments.push({ path: findfiles.files[i].files[j].fileUrl });
+                            const fileObj = findfiles.files[i].files[j];
+                            let originalName = fileObj.fileName;
+                            // Remove appended timestamp if present (e.g. _2025-09-12T05-38-49-206Z)
+                            const match = originalName.match(/(.+)_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(\.[^.]+)?$/);
+                            if (match) {
+                                originalName = match[1] + (match[2] || '');
+                            }
+                            attachments.push({ path: fileObj.fileUrl, filename: originalName });
                         }
                     }
                 }
@@ -81,7 +88,14 @@ export const shareFile = async (req, res) => {
                         if (findfiles.files[i].files) {
                             for (let j = 0; j < findfiles.files[i].files.length; j++) {
                                 if (fileId.includes(findfiles.files[i].files[j].fileId)) {
-                                    attachments.push({ path: findfiles.files[i].files[j].fileUrl });
+                                    const fileObj = findfiles.files[i].files[j];
+                                    let originalName = fileObj.fileName;
+                                    // Remove appended timestamp if present (e.g. _2025-09-12T05-38-49-206Z)
+                                    const match = originalName.match(/(.+)_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(\.[^.]+)?$/);
+                                    if (match) {
+                                        originalName = match[1] + (match[2] || '');
+                                    }
+                                    attachments.push({ path: fileObj.fileUrl, filename: originalName });
                                 }
                             }
                         }

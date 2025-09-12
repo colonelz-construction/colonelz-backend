@@ -260,31 +260,21 @@ const storeOrUpdateContract = async (res, existingContractData, userId, userEmai
 
 
 const uploadImage = async (req, file, lead_id, org_id, fileName) => {
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    let newFileName = `${String(fileName)}_${timestamp}`;
-
-    if (typeof newFileName !== 'string') {
-        newFileName = String(newFileName);
-    }
-    // console.log(file)
+    let newFileName = String(fileName);
     const data = await s3
         .upload({
             Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/Quotation`,
             Key: newFileName,
             Body: file.data,
             ContentType: file.mimetype,
-
         })
         .promise();
-
     const signedUrl = s3.getSignedUrl('getObject', {
         Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/Quotation`,
         Key: newFileName,
         Expires: 157680000 // URL expires in 5 year
     });
     return { status: true, data, signedUrl };
-
 };
 
 const saveFileUploadData = async (
