@@ -219,6 +219,7 @@ const projectFileUpload = async (req, res) => {
               updated_Date: fileUrls[0].date,
               files: fileUrls,
             });
+            return res.send({ code: 200, status: true, message: "File data updated successfully", data: fileUrls });
           } else {
             await saveFileUploadData(
               res,
@@ -232,6 +233,7 @@ const projectFileUpload = async (req, res) => {
               },
               true
             );
+            return res.send({ code: 200, status: true, message: "First file created successfully", data: fileUrls });
           }
         } else {
           res.send({
