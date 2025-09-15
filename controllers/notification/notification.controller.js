@@ -281,6 +281,7 @@ export const getNotification = async (req, res) => {
     const org_id = req.query.org_id;
     const page = parseInt(req.query.page, 10) || 1; // Default to page 1 if not provided
     const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 items per page if not provided
+    const unreadOnly = req.query.unreadOnly === 'true'; // Filter for unread notifications only
 
     // Validate userId
     if (!userId) {
@@ -300,16 +301,21 @@ export const getNotification = async (req, res) => {
       return responseData(res, "", 404, false, "User not found");
     }
 
+    // Build query filter
+    const queryFilter = { org_id: org_id };
+    if (unreadOnly) {
+      queryFilter.status = false; // Only unread notifications
+    }
+
     // Fetch notifications with pagination
     const notifications = await notificationModel
-      .find({org_id: org_id})
+      .find(queryFilter)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
 
-
     // Count total notifications to calculate total pages
-    const totalNotifications = await notificationModel.countDocuments({});
+    const totalNotifications = await notificationModel.countDocuments(queryFilter);
     const totalPages = Math.ceil(totalNotifications / limit);
 
     if (!notifications.length) {
