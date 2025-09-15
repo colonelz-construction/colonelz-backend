@@ -64,4 +64,13 @@ const LeadTaskSchema = new mongoose.Schema({
 
 });
 
+// Indexes for lead tasks
+LeadTaskSchema.index({ org_id: 1 });
+LeadTaskSchema.index({ lead_id: 1 });
+LeadTaskSchema.index({ task_id: 1 });
+LeadTaskSchema.index({ task_status: 1 });
+LeadTaskSchema.index({ task_priority: 1 });
+LeadTaskSchema.index({ task_createdOn: -1 });
+LeadTaskSchema.index({ org_id: 1, lead_id: 1, task_status: 1 });
+
 export default mongoose.model("leadTask", LeadTaskSchema, "leadTask");

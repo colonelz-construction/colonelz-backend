@@ -39,4 +39,11 @@ const timelineSchema = new mongoose.Schema({
   
 });
 
+// Indexes for faster timeline queries
+timelineSchema.index({ org_id: 1 });
+timelineSchema.index({ project_id: 1 });
+timelineSchema.index({ lead_id: 1 });
+timelineSchema.index({ org_id: 1, project_id: 1 });
+timelineSchema.index({ org_id: 1, lead_id: 1 });
+
 export default mongoose.model("timeline", timelineSchema, "timeline");

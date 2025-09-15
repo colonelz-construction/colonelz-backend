@@ -21,6 +21,7 @@ const projectSchema = new mongoose.Schema({
   project_id: {
     type: String,
     required: true,
+    index: true,
   },
   lead_id: {
     type: String,
@@ -28,6 +29,7 @@ const projectSchema = new mongoose.Schema({
   org_id:{
     type: String,
     require:true,
+    index: true,
   },
   project_type: {
     type: String,
@@ -88,4 +90,16 @@ const projectSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Indexes to optimize project lookups
+projectSchema.index({ org_id: 1 });
+projectSchema.index({ project_id: 1 });
+projectSchema.index({ lead_id: 1 });
+projectSchema.index({ project_status: 1 });
+projectSchema.index({ status: 1 });
+projectSchema.index({ project_start_date: 1 });
+projectSchema.index({ project_end_date: 1 });
+projectSchema.index({ org_id: 1, status: 1 });
+projectSchema.index({ org_id: 1, project_status: 1 });
+
 export default mongoose.model("project", projectSchema, "project");

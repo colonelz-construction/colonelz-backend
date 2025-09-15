@@ -936,3 +936,110 @@ export const reactivateProject = async (req, res) => {
 
 
 
+
+// Update project name and propagate to related collections
+export const updateProjectName = async (req, res) => {
+  try {
+    const user = req.user;
+    const { project_id, org_id, project_name } = req.body;
+
+    if (!user) {
+      return responseData(res, "", 403, false, "User not found.");
+    }
+    if (!project_id) {
+      return responseData(res, "", 400, false, "project_id is required.");
+    }
+    if (!org_id) {
+      return responseData(res, "", 400, false, "org_id is required.");
+    }
+    if (!project_name || typeof project_name !== 'string' || project_name.trim().length < 1) {
+      return responseData(res, "", 400, false, "Valid project_name is required.");
+    }
+
+    const check_org = await orgModel.findOne({ _id: org_id });
+    if (!check_org) {
+      return responseData(res, "", 404, false, "Organization not found");
+    }
+
+    const check_user = await registerModel.findOne({ _id: user._id, organization: org_id });
+    if (!check_user) {
+      return responseData(res, "", 404, false, "User not found in organization.");
+    }
+
+    const project = await projectModel.findOne({ project_id, org_id });
+    if (!project) {
+      return responseData(res, "", 404, false, "Project not found.");
+    }
+
+    const oldProjectName = project.project_name;
+    if (oldProjectName === project_name) {
+      return responseData(res, "Project name unchanged", 200, true, "");
+    }
+
+    const newDate = new Date();
+
+    // Update the project name
+    await projectModel.updateOne(
+      { project_id, org_id },
+      {
+        $set: { project_name },
+        $push: {
+          project_updated_by: {
+            username: check_user.username,
+            role: check_user.role,
+            message: `has renamed project from ${oldProjectName} to ${project_name}.`,
+            updated_date: newDate,
+            action: "rename"
+          }
+        }
+      }
+    );
+
+    // Propagate name to related collections that denormalize project_name
+    await Promise.all([
+      // file uploads collection
+      fileuploadModel.updateMany(
+        { project_id, org_id },
+        { $set: { project_name } }
+      ),
+      // archive entries
+      archiveModel.updateMany(
+        { project_id, org_id },
+        { $set: { project_name } }
+      )
+    ]);
+
+    // Timeline entry
+    const projectUpdate = {
+      username: check_user.username,
+      role: check_user.role,
+      message: `has renamed project from ${oldProjectName} to ${project_name}.`,
+      updated_date: newDate,
+      tags: [],
+      type: 'project rename'
+    };
+    try {
+      await createOrUpdateTimeline('', project_id, org_id, {}, projectUpdate, res);
+    } catch (timelineError) {
+      // Continue even if timeline creation fails
+      console.error('Timeline error (rename):', timelineError);
+    }
+
+    // Notification
+    const formatedDate = formatDate(newDate);
+    const newNotification = new notificationModel({
+      type: "project",
+      org_id: org_id,
+      notification_id: generateSixDigitNumber(),
+      itemId: project_id,
+      message: `Project renamed: ${oldProjectName} → ${project_name} on ${formatedDate}.`,
+      status: false,
+    });
+    await newNotification.save();
+
+    return responseData(res, "Project name updated successfully", 200, true, "");
+  } catch (err) {
+    console.error(err);
+    return responseData(res, "", 500, false, "Something went wrong", err);
+  }
+};

@@ -11,8 +11,8 @@ export const createRole = async (req, res) => {
         const access = req.body.access;
         const org_id = req.body.org_id;
 
-        const tempRole = role.toUpperCase();  
-        if(tempRole === "ADMIN") {
+        const tempRole = role.toUpperCase();
+        if (tempRole === "ADMIN") {
             role = tempRole
         }
 
@@ -32,23 +32,23 @@ export const createRole = async (req, res) => {
         else if (!org_id) {
             return responseData(res, "", 400, false, "Organization Id is required");
         }
-        
+
         else {
 
-                const check_org = await orgModel.findOne({ _id: org_id })
-                if (!check_org) {
-                    return responseData(res, "", 404, false, "Org not found");
-                }
-                const checkRole = await roleModel.findOne({ role: role, org_id: org_id });
-                if (checkRole) {
-                    responseData(res, "", 400, false, "Role already exists")
+            const check_org = await orgModel.findOne({ _id: org_id })
+            if (!check_org) {
+                return responseData(res, "", 404, false, "Org not found");
+            }
+            const checkRole = await roleModel.findOne({ role: role, org_id: org_id });
+            if (checkRole) {
+                responseData(res, "", 400, false, "Role already exists")
 
-                }
-                else {
-                    const newRole = await roleModel.create({ role, access, org_id });
-                    responseData(res, "Role created successfully", 200, true, "")
-                }
-            
+            }
+            else {
+                const newRole = await roleModel.create({ role, access, org_id });
+                responseData(res, "Role created successfully", 200, true, "")
+            }
+
 
         }
     }
@@ -88,7 +88,7 @@ export const getRole = async (req, res) => {
         //         }
         //     }
         // ]);
-        const rolesWithUsers = await roleModel.find({org_id:org_id})
+        const rolesWithUsers = await roleModel.find({ org_id: org_id })
 
         responseData(res, "Roles found successfully", 200, true, "", rolesWithUsers);
     } catch (err) {
@@ -124,15 +124,15 @@ export const UpdateRole = async (req, res) => {
             return responseData(res, "", 404, false, "Org not found");
         }
 
-        const existingRole = await roleModel.findOne({_id:id, org_id: org_id});
+        const existingRole = await roleModel.findOne({ _id: id, org_id: org_id });
         if (!existingRole) {
             return responseData(res, "", 404, false, "Role not found for this id");
         }
 
-        const updatedRole = await roleModel.findOneAndUpdate({_id:id, org_id: org_id}, { role, access }, { new: true });
+        const updatedRole = await roleModel.findOneAndUpdate({ _id: id, org_id: org_id }, { role, access }, { new: true });
 
         if (updatedRole) {
-            const usersToUpdate = await registerModel.find({ role: existingRole.role, organization:org_id });
+            const usersToUpdate = await registerModel.find({ role: existingRole.role, organization: org_id });
 
             if (usersToUpdate.length > 0) {
                 await Promise.all(usersToUpdate.map(user =>
@@ -160,7 +160,7 @@ export const DeleteRole = async (req, res) => {
         if (!id) {
             return responseData(res, "", 400, false, "Role id is required");
         }
-         if (!org_id) {
+        if (!org_id) {
             responseData(res, "", 400, false, "org id is required", []);
         }
 
@@ -168,7 +168,7 @@ export const DeleteRole = async (req, res) => {
         if (!check_org) {
             return responseData(res, "", 404, false, "Org not found");
         }
-        const check_role = await roleModel.findOne({_id:id, org_id: org_id});
+        const check_role = await roleModel.findOne({ _id: id, org_id: org_id });
         if (!check_role) {
             return responseData(res, "", 404, false, "Role not found for this id");
         }
@@ -177,7 +177,7 @@ export const DeleteRole = async (req, res) => {
             return responseData(res, "", 400, false, "This role cannot be deleted as it is assigned to the user.");
         }
 
-        await roleModel.findOneAndDelete({_id:id, org_id: org_id});
+        await roleModel.findOneAndDelete({ _id: id, org_id: org_id });
         responseData(res, `${check_role.role} role has been deleted`, 200, true, "");
 
     } catch (err) {
@@ -199,7 +199,7 @@ export const roleWiseAccess = async (req, res) => {
         if (!check_org) {
             return responseData(res, "", 404, false, "Org not found");
         }
-        const access = await roleModel.find({org_id: org_id}).lean(); // Use lean for better performance
+        const access = await roleModel.find({ org_id: org_id }).lean(); // Use lean for better performance
 
         if (access.length < 1) {
             return responseData(res, "No role found", 200, true, "");
@@ -233,24 +233,24 @@ export const roleWiseAccess = async (req, res) => {
 export const roleName = async (req, res) => {
     try {
         const org_id = req.query.org_id;
-        if(!org_id)
-        {
+        if (!org_id) {
             return responseData(res, "", 404, false, "Org Id required", []);
         }
-        // Use lean to get plain JavaScript objects and only fetch the 'role' field
-        const check_org = await orgModel.findOne({ _id: org_id })
+
+        const check_org = await orgModel.findOne({ _id: org_id });
+
         if (!check_org) {
             return responseData(res, "", 404, false, "Org not found");
         }
-        const roles = await roleModel.find({org_id: org_id}, 'role').lean();
+
+        const roles = await roleModel.find({ org_id: org_id }, 'role').lean();
+
 
         if (!roles.length) {
             return responseData(res, "No role found", 200, true, "");
         }
 
-        // Directly extract role names using map
         const response = roles.map(({ role }) => role);
-
         return responseData(res, "Roles found successfully", 200, true, "", response);
     } catch (err) {
         console.error(err);

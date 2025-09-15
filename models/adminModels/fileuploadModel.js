@@ -35,6 +35,13 @@ const fileuploadSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+// Indexes for file uploads
+fileuploadSchema.index({ org_id: 1 });
+fileuploadSchema.index({ type: 1 });
+fileuploadSchema.index({ lead_id: 1 });
+fileuploadSchema.index({ project_id: 1 });
+fileuploadSchema.index({ createdAt: -1 });
+fileuploadSchema.index({ org_id: 1, type: 1, createdAt: -1 });
 export default mongoose.model("file", fileuploadSchema, "file");
 
 

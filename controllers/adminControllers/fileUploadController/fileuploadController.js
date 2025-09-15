@@ -43,10 +43,7 @@ const uploadFileDrawing = async (
 };
 
 const uploadFile = async (file, fileName, lead_id, org_id, folder_name) => {
-  // console.log(fileName)
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  let newFileName = `${fileName}_${timestamp}`;
-
+  let newFileName = fileName;
   const data = await s3
     .upload({
       Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/${folder_name}`,

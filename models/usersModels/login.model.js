@@ -17,9 +17,11 @@ const login = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    index: {
-      expireAfterSeconds: new Date(new Date().getTime() + 30 * 24 * 60 * 60),
-    },
+    // expire documents ~30 days after creation
+    expires: 60 * 60 * 24 * 30,
   },
 });
+// Indexes for login logs
+login.index({ userID: 1 });
+login.index({ createdAt: -1 });
 export default mongoose.model("login", login, "login");

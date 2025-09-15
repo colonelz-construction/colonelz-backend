@@ -17,6 +17,7 @@ const signUp = new mongoose.Schema({
   organization: {
     type: String,
     required: true,
+    index: true,
   },
 
   role: {
@@ -42,4 +43,14 @@ const signUp = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Useful indexes for user lookups
+signUp.index({ organization: 1 });
+signUp.index({ email: 1 });
+signUp.index({ username: 1 });
+signUp.index({ status: 1 });
+signUp.index({ role: 1 });
+signUp.index({ createdAt: -1 });
+signUp.index({ organization: 1, role: 1 });
+
 export default mongoose.model("users", signUp, "users");

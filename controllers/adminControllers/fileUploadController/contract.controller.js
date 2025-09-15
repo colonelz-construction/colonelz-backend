@@ -396,21 +396,20 @@ function generateSixDigitNumber() {
 
 // ✅ Upload to S3
 const uploadImage = async (filePath, lead_id, org_id, fileName) => {
+  let newFileName = fileName;
   const data = await s3
     .upload({
       Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/Contract`,
-      Key: fileName,
+      Key: newFileName,
       Body: fs.createReadStream(filePath),
       ContentType: "application/pdf",
     })
     .promise();
-
   const signedUrl = s3.getSignedUrl("getObject", {
     Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/Contract`,
-    Key: fileName,
+    Key: newFileName,
     Expires: 157680000, // 5 years
   });
-
   return { data, signedUrl };
 };
 
