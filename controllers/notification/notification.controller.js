@@ -307,9 +307,10 @@ export const getNotification = async (req, res) => {
       queryFilter.status = false; // Only unread notifications
     }
 
-    // Fetch notifications with pagination
+    // Fetch notifications with pagination and stable sort (newest first)
     const notifications = await notificationModel
       .find(queryFilter)
+      .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
@@ -322,9 +323,9 @@ export const getNotification = async (req, res) => {
       return responseData(res, "No notification found", 200, false, "");
     }
 
-    // Prepare and return the response
+    // Prepare and return the response (already sorted newest-first)
     const response = {
-      NotificationData: notifications.reverse(),
+      NotificationData: notifications,
       pagination: {
         totalNotifications,
         totalPages,
