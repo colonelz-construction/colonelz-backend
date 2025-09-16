@@ -15,6 +15,15 @@ const archiveSchema = new mongoose.Schema({
     archivedAt: { type: Date, default: Date.now },
 });
 
+// Indexes for archive lookups
+archiveSchema.index({ org_id: 1 });
+archiveSchema.index({ lead_id: 1 });
+archiveSchema.index({ project_id: 1 });
+archiveSchema.index({ type: 1 });
+archiveSchema.index({ deleted_type: 1 });
+archiveSchema.index({ archivedAt: -1 });
+archiveSchema.index({ org_id: 1, type: 1, archivedAt: -1 });
+
 export default mongoose.model('Archive', archiveSchema);
 
 

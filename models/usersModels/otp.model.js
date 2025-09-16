@@ -20,4 +20,7 @@ const OTP = new mongoose.Schema({
     expires: 300,
   },
 });
+// Indexes for OTP lookups
+OTP.index({ email: 1 });
+OTP.index({ status: 1 });
 export default mongoose.model("OTP", OTP, "OTP");

@@ -74,4 +74,12 @@ const orgSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
+
+// Indexes for organization lookups
+orgSchema.index({ organization: 1 });
+orgSchema.index({ org_status: 1 });
+orgSchema.index({ createdAt: -1 });
+orgSchema.index({ org_email: 1 });
+orgSchema.index({ org_phone: 1 });
+
 export default mongoose.model("organisation", orgSchema, "organisation");

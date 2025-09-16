@@ -18,28 +18,20 @@ function generateSixDigitNumber() {
 }
 
 const uploadFile = async (file, fileName, lead_id, org_id,folder_name) => {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-  let newFileName = `${fileName}_${timestamp}`
-  
+  let newFileName = fileName;
   const data = await s3.upload({
     Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/${folder_name}`,
     Key: newFileName,
     Body: file.data,
     ContentType: file.mimetype,
-
   })
     .promise();
-    const signedUrl = s3.getSignedUrl('getObject', {
-      Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/${folder_name}`,
-      Key: newFileName,
-      Expires: 157680000 // URL expires in 5 years
-    });
-
-    return { status: true, data, signedUrl };
-  // } catch (error) {
-  //   console.error('Error uploading file:', error);
-  //   return { status: false, error: error.message };
-  // }
+  const signedUrl = s3.getSignedUrl('getObject', {
+    Bucket: `${process.env.S3_BUCKET_NAME}/${org_id}/${lead_id}/${folder_name}`,
+    Key: newFileName,
+    Expires: 157680000 // URL expires in 5 years
+  });
+  return { status: true, data, signedUrl };
 };
 
 const saveFileUploadData = async (
@@ -227,6 +219,7 @@ const projectFileUpload = async (req, res) => {
               updated_Date: fileUrls[0].date,
               files: fileUrls,
             });
+            return res.send({ code: 200, status: true, message: "File data updated successfully", data: fileUrls });
           } else {
             await saveFileUploadData(
               res,
@@ -240,6 +233,7 @@ const projectFileUpload = async (req, res) => {
               },
               true
             );
+            return res.send({ code: 200, status: true, message: "First file created successfully", data: fileUrls });
           }
         } else {
           res.send({

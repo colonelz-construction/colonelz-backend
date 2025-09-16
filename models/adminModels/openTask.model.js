@@ -40,4 +40,11 @@ const OpenTaskSchema = new mongoose.Schema({
 
 });
 
+// Indexes for open tasks
+OpenTaskSchema.index({ org_id: 1 });
+OpenTaskSchema.index({ task_id: 1 });
+OpenTaskSchema.index({ task_status: 1 });
+OpenTaskSchema.index({ task_priority: 1 });
+OpenTaskSchema.index({ task_createdOn: -1 });
+
 export default mongoose.model("opentask", OpenTaskSchema, "opentask");

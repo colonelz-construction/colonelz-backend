@@ -43,4 +43,13 @@ const threeimageSchema = new mongoose.Schema({
   },
 });
 
+// Indexes for threeimage lookups
+threeimageSchema.index({ org_id: 1 });
+threeimageSchema.index({ user_id: 1 });
+threeimageSchema.index({ lead_id: 1 });
+threeimageSchema.index({ project_id: 1 });
+threeimageSchema.index({ type: 1 });
+threeimageSchema.index({ createdAt: -1 });
+threeimageSchema.index({ org_id: 1, type: 1, createdAt: -1 });
+
 export default mongoose.model("threeimage", threeimageSchema, "threeimage");
